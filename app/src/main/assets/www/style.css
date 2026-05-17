@@ -4152,9 +4152,17 @@ button, a, div, span, input {
 }
 
 /* ── NP 즐겨찾기 버튼: 활성화 시 하트 채움 (Android WebView 강제 적용) ── */
-#np-fav.on path,
-#np-fav.on svg path {
+button#np-fav.on svg path,
+button#np-fav.on path {
     fill: var(--acc) !important;
+    stroke: var(--acc) !important;
+}
+
+button#np-fav svg path {
+    transition: fill 0.2s ease, stroke 0.2s ease !important;
+}
+
+button#np-save.on svg path {
     stroke: var(--acc) !important;
 }
 
