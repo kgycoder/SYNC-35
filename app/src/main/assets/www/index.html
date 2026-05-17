@@ -333,21 +333,21 @@
                         <polyline points="17,13 19,15 17,17"/>
                     </svg>
                 </button>
-                <button class="nc" onclick="prevT()">
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-                        <polygon points="22,4 10,14 22,24" fill="currentColor" stroke="none"/>
-                        <line x1="6" y1="4" x2="6" y2="24"/>
-                    </svg>
-                </button>
+<button class="nc" onclick="prevT()">
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 6 L6 26"/>
+        <path d="M26 6 Q10 16 26 26"/>
+    </svg>
+</button>
                 <button class="nc nc-play" id="nc-play" onclick="togglePlay()">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="#08080d"><polygon points="7,4 20,12 7,20"/></svg>
                 </button>
-                <button class="nc" onclick="nextT()">
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-                        <polygon points="6,4 18,14 6,24" fill="currentColor" stroke="none"/>
-                        <line x1="22" y1="4" x2="22" y2="24"/>
-                    </svg>
-                </button>
+<button class="nc" onclick="nextT()">
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M26 6 L26 26"/>
+        <path d="M6 6 Q22 16 6 26"/>
+    </svg>
+</button>
                 <button class="nc" id="nc-rep" onclick="toggleRep()">
                     <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
                         <polyline points="1,5 4,2 7,5"/>
@@ -369,11 +369,6 @@
                         <path d="M2 5H0.5v4H2l3 2.5v-9L2 5z"/>
                         <path d="M9.5 4a4 4 0 0 1 0 6M12 2a7 7 0 0 1 0 10"/>
                     </svg>
-                </div>
-                <div class="np-echo">
-                    <span class="np-elbl">Echo</span>
-                    <input type="range" class="np-sl" id="np-echo-sl" min="0" max="100" value="0"
-                           oninput="setEcho(+this.value);document.getElementById('echo-sl-bar').value=this.value">
                 </div>
             </div>
         </div>
