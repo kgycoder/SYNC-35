@@ -1696,12 +1696,20 @@ function updFavBtn() {
     ['b-fav', 'np-fav'].forEach(id => {
         const btn = document.getElementById(id);
         if (!btn) return;
+        // CSS 클래스 토글 제거, data 속성으로 상태 관리
+        btn.dataset.active = f ? '1' : '0';
         btn.classList.toggle('on', !!f);
-        const path = btn.querySelector('svg path');
-        if (path) {
-            path.setAttribute('fill', f ? 'var(--acc)' : 'none');
-            path.setAttribute('stroke', f ? 'var(--acc)' : 'rgba(255,255,255,.5)');
-        }
+        // SVG 내부 path를 직접 찾아 style 속성으로 강제 적용
+        const paths = btn.querySelectorAll('path');
+        paths.forEach(path => {
+            if (f) {
+                path.style.setProperty('fill', 'var(--acc)', 'important');
+                path.style.setProperty('stroke', 'var(--acc)', 'important');
+            } else {
+                path.style.setProperty('fill', 'none', 'important');
+                path.style.setProperty('stroke', 'rgba(255,255,255,.5)', 'important');
+            }
+        });
     });
 }
 
