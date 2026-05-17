@@ -815,6 +815,7 @@ function getPlayheadTime() {
     return S.cur || 0;
 }
 
+/* [CHANGED] seekToLyric: 가사 클릭 시 스와이프 애니메이션 적용 (instant=false) */
 function seekToLyric(sec, e) {
     e?.preventDefault?.();
     e?.stopPropagation?.();
@@ -837,7 +838,12 @@ function seekToLyric(sec, e) {
         }
     }
     LY.curIdx = idx;
-    _highlightLine(idx, true);
+    /* instant=false → CSS transition 스와이프 애니메이션 적용 */
+    _highlightLine(idx, false);
+    if (NP_LS.active) {
+        NP_LS.curIdx = idx;
+        _highlightLsLine(idx);
+    }
 }
 
 function normalizeLyricLines(lines) {
@@ -1049,7 +1055,7 @@ async function doSearch(query) {
 
 async function loadRec(kw, rowId) {
     const row = document.getElementById(rowId); if (!row) return;
-    row.innerHTML = `<div class="state" style="padding:28px 20px"><div class="spinner"></div></div>`;
+    row.innerHTML = `<div class="state" style="padding:28px 20px"><div class="spinner" style="width:20px;height:20px;border-width:1.5px;margin:0 auto 8px"></div></div>`;
     try {
         const res = await callCs({ type: 'search', query: kw });
         const tracks = res.tracks || [];
@@ -1252,6 +1258,8 @@ function prevT() {
     const p = (S.idx - 1 + S.q.length) % S.q.length;
     S.idx = p; playTrack(S.q[p], p);
 }
+
+/* [CHANGED] updPlay: Apple Music 스타일 이전/다음 버튼 SVG */
 function updPlay() {
     const on = S.playing;
     document.getElementById('cb-play').innerHTML = on
@@ -1262,6 +1270,7 @@ function updPlay() {
         : `<svg width="22" height="22" viewBox="0 0 22 22" fill="#08080d"><polygon points="6,3.5 18,11 6,18.5"/></svg>`;
     _syncOvPlayBtn();
 }
+
 function toggleShuf() {
     S.shuffle = !S.shuffle;
     ['cb-sh', 'nc-sh'].forEach(id => document.getElementById(id)?.classList.toggle('on', S.shuffle));
@@ -1385,14 +1394,13 @@ function openNP() {
     if (LY.lines.length > 0) _startLyricsTick();
 }
 function closeNP() {
-    // 랜드스케이프 모드면 먼저 해제
     if (NP_LS.active) _exitNpLandscape();
     document.getElementById('np').classList.remove('on');
     _stopLyricsTick();
 }
 
 /* ════════════════════════════════════════════
-   NP LANDSCAPE FULLSCREEN (Android 전용)
+   NP LANDSCAPE FULLSCREEN
 ════════════════════════════════════════════ */
 const NP_LS = {
     active: false,
@@ -1412,15 +1420,10 @@ function _enterNpLandscape() {
     NP_LS.active = true;
     const np = document.getElementById('np');
     if (!np) return;
-
-    // DOM 먼저 구성
     _buildLandscapeDOM();
     _renderLsLyrics();
     _startLsTick();
-
     document.getElementById('np-fs-btn')?.classList.add('on');
-
-    // 가로 전환
     setTimeout(() => {
         try {
             window.AndroidBridge.postMessage(JSON.stringify({
@@ -1434,14 +1437,11 @@ function _exitNpLandscape() {
     NP_LS.active = false;
     const np = document.getElementById('np');
     if (!np) return;
-
     np.style.flexDirection = '';
     np.style.overflow = '';
-
     document.getElementById('np-fs-btn')?.classList.remove('on');
     _destroyLandscapeDOM();
     _stopLsTick();
-
     setTimeout(() => {
         try {
             window.AndroidBridge.postMessage(JSON.stringify({
@@ -1454,44 +1454,27 @@ function _exitNpLandscape() {
 function _buildLandscapeDOM() {
     const np = document.getElementById('np');
     if (!np || document.getElementById('np-ls-left')) return;
-
-    // 기존 요소 숨기기
     const artArea = np.querySelector('.np-art-area');
     const panel   = np.querySelector('.np-panel');
     if (artArea) artArea.style.display = 'none';
     if (panel)   panel.style.display   = 'none';
-
-    // np 자체를 flex row로
     np.style.flexDirection = 'row';
     np.style.overflow = 'hidden';
 
-    // ── 왼쪽 컬럼 ──
     const left = document.createElement('div');
     left.id = 'np-ls-left';
     left.style.cssText = [
-        'display:flex',
-        'flex-direction:column',
-        'align-items:center',
-        'justify-content:center',
-        'width:40%',
-        'height:100%',
-        'padding:20px 14px 20px 24px',
-        'box-sizing:border-box',
-        'position:relative',
-        'z-index:10',
-        'flex-shrink:0'
+        'display:flex','flex-direction:column','align-items:center',
+        'justify-content:center','width:40%','height:100%',
+        'padding:20px 14px 20px 24px','box-sizing:border-box',
+        'position:relative','z-index:10','flex-shrink:0'
     ].join(';');
 
-    // 앨범 아트
     const artShell = document.createElement('div');
     artShell.style.cssText = [
-        'width:min(190px,24vw)',
-        'aspect-ratio:1',
-        'border-radius:14px',
-        'overflow:hidden',
-        'flex-shrink:0',
-        'box-shadow:0 24px 80px rgba(0,0,0,0.85)',
-        'position:relative'
+        'width:min(190px,24vw)','aspect-ratio:1','border-radius:14px',
+        'overflow:hidden','flex-shrink:0',
+        'box-shadow:0 24px 80px rgba(0,0,0,0.85)','position:relative'
     ].join(';');
     const artImg = document.createElement('img');
     artImg.id = 'np-ls-art';
@@ -1501,20 +1484,14 @@ function _buildLandscapeDOM() {
     artShell.appendChild(artImg);
     left.appendChild(artShell);
 
-    // 곡명 + 아티스트
     const meta = document.createElement('div');
     meta.style.cssText = 'width:100%;margin-top:10px;padding:0 4px;';
     const titleEl = document.createElement('div');
     titleEl.id = 'np-ls-title';
     titleEl.style.cssText = [
-        'font-size:11px',
-        'font-weight:700',
-        'color:rgba(255,255,255,0.96)',
-        'white-space:nowrap',
-        'overflow:hidden',
-        'text-overflow:ellipsis',
-        'letter-spacing:-0.3px',
-        'margin-bottom:3px'
+        'font-size:11px','font-weight:700','color:rgba(255,255,255,0.96)',
+        'white-space:nowrap','overflow:hidden','text-overflow:ellipsis',
+        'letter-spacing:-0.3px','margin-bottom:3px'
     ].join(';');
     titleEl.textContent = S.track?.title || '—';
     const chEl = document.createElement('div');
@@ -1525,7 +1502,6 @@ function _buildLandscapeDOM() {
     meta.appendChild(chEl);
     left.appendChild(meta);
 
-    // 재생바
     const prog = document.createElement('div');
     prog.style.cssText = 'width:100%;margin-top:8px;padding:0 4px;';
     prog.innerHTML = `
@@ -1539,7 +1515,6 @@ function _buildLandscapeDOM() {
     `;
     left.appendChild(prog);
 
-    // seek 터치 이벤트
     setTimeout(() => {
         const pb = document.getElementById('np-ls-pb');
         if (!pb) return;
@@ -1554,20 +1529,12 @@ function _buildLandscapeDOM() {
         pb.addEventListener('touchstart', e => { e.preventDefault(); doSeek(e.touches[0].clientX); }, { passive: false });
     }, 100);
 
-    // ── 오른쪽 컬럼: 가사 ──
     const right = document.createElement('div');
     right.id = 'np-ls-right';
-right.style.cssText = [
-        'display:flex',
-        'flex-direction:column',
-        'justify-content:center',
-        'width:60%',
-        'height:100%',
-        'padding:20px 28px 20px 12px',
-        'box-sizing:border-box',
-        'overflow:hidden',
-        'position:relative',
-        'z-index:10',
+    right.style.cssText = [
+        'display:flex','flex-direction:column','justify-content:center',
+        'width:60%','height:100%','padding:20px 28px 20px 12px',
+        'box-sizing:border-box','overflow:hidden','position:relative','z-index:10',
         '-webkit-mask-image:linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)',
         'mask-image:linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)'
     ].join(';');
@@ -1575,13 +1542,9 @@ right.style.cssText = [
     const scroll = document.createElement('div');
     scroll.id = 'np-ls-scroll';
     scroll.style.cssText = [
-        'overflow-y:auto',
-        'overflow-x:hidden',
-        'height:100%',
-        'padding:30px 8px',
-        'box-sizing:border-box',
-        'scrollbar-width:none',
-        '-ms-overflow-style:none'
+        'overflow-y:auto','overflow-x:hidden','height:100%',
+        'padding:30px 8px','box-sizing:border-box',
+        'scrollbar-width:none','-ms-overflow-style:none'
     ].join(';');
     right.appendChild(scroll);
 
@@ -1604,7 +1567,6 @@ function _renderLsLyrics() {
     const scroll = document.getElementById('np-ls-scroll');
     if (!scroll) return;
     scroll.innerHTML = '';
-
     if (!LY.lines.length) {
         const empty = document.createElement('div');
         empty.style.cssText = 'text-align:center;color:rgba(255,255,255,0.28);font-size:13px;padding:40px 0;';
@@ -1612,21 +1574,14 @@ function _renderLsLyrics() {
         scroll.appendChild(empty);
         return;
     }
-
     LY.lines.forEach((line, i) => {
         const el = document.createElement('div');
         el.style.cssText = [
-            'font-size:clamp(16px,2.2vw,24px)',
-            'font-weight:700',
-            'line-height:1.55',
-            'color:rgba(255,255,255,0.00)',
-            'padding:6px 0',
-            'cursor:pointer',
-            'word-break:keep-all',
-            'overflow-wrap:break-word',
+            'font-size:clamp(16px,2.2vw,24px)','font-weight:700','line-height:1.55',
+            'color:rgba(255,255,255,0.00)','padding:6px 0','cursor:pointer',
+            'word-break:keep-all','overflow-wrap:break-word',
             'transition:color 0.35s ease, filter 0.35s ease',
-            'will-change:color,filter',
-            '-webkit-font-smoothing:antialiased'
+            'will-change:color,filter','-webkit-font-smoothing:antialiased'
         ].join(';');
         el.textContent = line.text;
         el.addEventListener('click', e => seekToLyric(line.start + 0.05, e));
@@ -1652,23 +1607,16 @@ function _syncLsLyrics() {
             ? (LOCAL.audio.duration || S.dur || 0)
             : (S.ytPlayer?.getDuration?.() || S.dur || 0);
         const pct = dur ? (cur / dur) * 100 : 0;
-
-        // 재생바 업데이트
         const pf = document.getElementById('np-ls-pf');
         if (pf) pf.style.width = pct.toFixed(2) + '%';
         const curEl = document.getElementById('np-ls-cur');
         const totEl = document.getElementById('np-ls-tot');
         if (curEl) curEl.textContent = fmt(cur);
         if (totEl) totEl.textContent = fmt(dur);
-
-        // 아트 / 곡명 동기화
         const origArt = document.getElementById('np-art');
         const lsArt   = document.getElementById('np-ls-art');
         if (origArt && lsArt && origArt.src !== lsArt.src) lsArt.src = origArt.src;
-
         if (!LY.lines.length) return;
-
-        // 가사 싱크
         let found = -1;
         for (let i = LY.lines.length - 1; i >= 0; i--) {
             if (cur >= LY.lines[i].start) {
@@ -1709,7 +1657,6 @@ function _highlightLsLine(idx) {
             el.style.fontWeight = '700';
             el.style.filter     = 'none';
         } else {
-            /* 범위 밖 줄: 완전 투명 → 5줄 밖은 안 보임 */
             el.style.color      = 'rgba(255,255,255,0.00)';
             el.style.fontWeight = '700';
             el.style.filter     = 'none';
@@ -1742,9 +1689,20 @@ function favCur() {
     else { S.favs.push(S.track); toast('✦ 즐겨찾기 추가'); }
     saveFavs(); renderFavSide(); renderFavGrid(); updFavBtn();
 }
+
+/* [CHANGED] updFavBtn: SVG path fill/stroke 직접 조작으로 버그 수정 */
 function updFavBtn() {
     const f = S.track && isFav(S.track.id);
-    ['b-fav', 'np-fav'].forEach(id => document.getElementById(id)?.classList.toggle('on', !!f));
+    ['b-fav', 'np-fav'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.classList.toggle('on', !!f);
+        const path = btn.querySelector('svg path');
+        if (path) {
+            path.setAttribute('fill', f ? 'var(--acc)' : 'none');
+            path.setAttribute('stroke', f ? 'var(--acc)' : 'rgba(255,255,255,.5)');
+        }
+    });
 }
 
 async function fetchLyricsForSave(track) {
@@ -1759,6 +1717,7 @@ async function fetchLyricsForSave(track) {
         for (let i = 0; i < 6 && !duration; i++) {
             await new Promise(r => setTimeout(r, 500));
             duration = track.dur || S.dur || 0;
+            if (!duration && LOCAL.active && LOCAL.audio) duration = LOCAL.audio.duration || 0;
             if (!duration && S.ytPlayer && S.ytReady) {
                 try { duration = S.ytPlayer.getDuration() || 0; } catch { }
             }
@@ -1783,7 +1742,7 @@ async function saveLocalMusic() {
         try {
             const fetched = await fetchLyricsForSave(S.track);
             lyrics = normalizeLyricLines(fetched || []);
-        } catch { /* 가사 없어도 저장 */ }
+        } catch { }
         toast('영상 다운로드 중… (처음은 시간이 걸릴 수 있어요)');
         const dl = await callCs({ type: 'downloadVideo', videoId: S.track.id }, 900000);
         if (!dl.success) throw new Error(dl.error || '다운로드 실패');
@@ -2216,7 +2175,6 @@ function toast(msg) {
    OVERLAY MODE
 ════════════════════════════════════════════ */
 const OV = { active: false, ticker: null, curIdx: -1 };
-const OV_BAR_H = 58;
 
 function toggleOverlay() {
     OV.active = !OV.active;
@@ -2368,7 +2326,6 @@ async function fetchLyrics(videoId) {
             LY.videoId = videoId;
             LY.lines = normalizeLyricLines(res.lines);
             _renderLyrics();
-            // 랜드스케이프 모드 활성 시 가사 재렌더
             if (NP_LS.active) {
                 NP_LS.curIdx = -1;
                 _renderLsLyrics();
@@ -2444,7 +2401,6 @@ function _clearLyrics() {
     LY.curIdx = -1;
     LY.videoId = null;
     LY._fetching = null;
-    // 랜드스케이프 가사도 초기화
     if (NP_LS.active) {
         NP_LS.curIdx = -1;
         const scroll = document.getElementById('np-ls-scroll');
@@ -2453,7 +2409,7 @@ function _clearLyrics() {
 }
 
 /* ════════════════════════════════════════════
-   FULLSCREEN STATE (PC 전용, Android에서는 미사용)
+   FULLSCREEN STATE
 ════════════════════════════════════════════ */
 let _fsResizeObserver = null;
 
@@ -2846,7 +2802,6 @@ setTimeout(() => toast('✦ SYNC에 오신 걸 환영해요'), 1000);
    ANDROID INTEGRATION
 ════════════════════════════════════════════ */
 window.__onAndroidBack = function() {
-    // 랜드스케이프 전체화면 모드면 먼저 해제
     if (NP_LS.active) { _exitNpLandscape(); return; }
     const np = document.getElementById('np');
     if (np && np.classList.contains('on')) { closeNP(); return; }
@@ -2855,15 +2810,12 @@ window.__onAndroidBack = function() {
     if (document.getElementById('pl-add-modal-overlay')?.classList.contains('on')) { plAddModalClose(); return; }
 };
 
-// 화면 회전 감지 — NP_LS가 active 중이면 무시
 function _onOrientationChange() {
     if (NP_LS.active) return;
-    // PC fullscreen 처리만 (Android는 NP_LS로 별도 처리)
 }
 window.addEventListener('resize', _onOrientationChange);
 window.addEventListener('orientationchange', () => setTimeout(_onOrientationChange, 150));
 
-// 미니 바 터치 seek
 const _barEl = document.getElementById('bar');
 if (_barEl) {
     _barEl.addEventListener('touchstart', e => {
